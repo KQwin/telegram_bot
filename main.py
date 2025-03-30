@@ -1,7 +1,8 @@
+## main.py
 import os
 import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
 import openai
 from utils import is_premium, add_premium
 
@@ -48,7 +49,7 @@ def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(None, handle_query))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_query))
     dp.add_handler(CallbackQueryHandler(payment_handler))
     updater.start_polling()
     updater.idle()
@@ -56,3 +57,26 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+## utils.py
+import json
+
+def is_premium(user_id):
+    try:
+        with open("premium_users.json", "r") as f:
+            data = json.load(f)
+        return user_id in data.get("premium", [])
+    except FileNotFoundError:
+        return False
+
+def add_premium(user_id):
+    try:
+        with open("premium_users.json", "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        data = {"premium": []}
+    if user_id not in data["premium"]:
+        data["premium"].append(user_id)
+        with open("premium_users.json", "w") as f:
+            json.dump(data, f, indent=2)
